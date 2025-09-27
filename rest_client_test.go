@@ -1,6 +1,7 @@
 package cas
 
 import (
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -184,5 +185,64 @@ func TestLogout(t *testing.T) {
 	err = restClient.Logout(TicketGrantingTicket("TGT-xyz"))
 	if err == nil {
 		t.Errorf("logout should failed for this TGT")
+	}
+}
+func TestRestClientValidateServiceTicketCas3(t *testing.T) {
+	const response = `<?xml version="1.0"?>
+<cas:serviceResponse xmlns:cas="http://www.yale.edu/tp/cas">
+  <cas:authenticationSuccess>
+    <cas:user>ford</cas:user>
+    <cas:attributes>
+      <cas:authenticationDate>2015-02-10T14:28:42Z</cas:authenticationDate>
+      <cas:longTermAuthenticationRequestTokenUsed>true</cas:longTermAuthenticationRequestTokenUsed>
+      <cas:isFromNewLogin>false</cas:isFromNewLogin>
+    </cas:attributes>
+  </cas:authenticationSuccess>
+</cas:serviceResponse>`
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/cas/p3/serviceValidate" {
+			t.Fatalf("expected path /cas/p3/serviceValidate, got %s", r.URL.Path)
+		}
+		if r.URL.Query().Get("ticket") != "ST-999" {
+			t.Fatalf("expected ticket ST-999, got %s", r.URL.Query().Get("ticket"))
+		}
+		if r.URL.Query().Get("service") != "https://hitchhiker.com/heartOfGold" {
+			t.Fatalf("unexpected service value: %s", r.URL.Query().Get("service"))
+		}
+
+		w.Header().Set("Content-Type", "application/xml")
+		fmt.Fprint(w, response)
+	}))
+	defer server.Close()
+
+	casURL, err := url.Parse(server.URL + "/cas")
+	if err != nil {
+		t.Fatalf("failed to parse cas url: %v", err)
+	}
+
+	serviceURL, err := url.Parse("https://hitchhiker.com/heartOfGold")
+	if err != nil {
+		t.Fatalf("failed to parse service url: %v", err)
+	}
+
+	client := NewRestClient(&RestOptions{
+		CasURL:     casURL,
+		ServiceURL: serviceURL,
+		Client:     server.Client(),
+		CasVersion: CASVERSION3,
+	})
+
+	auth, err := client.ValidateServiceTicket(ServiceTicket("ST-999"))
+	if err != nil {
+		t.Fatalf("unexpected error validating service ticket: %v", err)
+	}
+
+	if auth.User != "ford" {
+		t.Fatalf("unexpected user: %s", auth.User)
+	}
+
+	if auth.IsRememberedLogin != true || auth.IsNewLogin != false {
+		t.Fatalf("unexpected login flags: remembered=%v new=%v", auth.IsRememberedLogin, auth.IsNewLogin)
 	}
 }
