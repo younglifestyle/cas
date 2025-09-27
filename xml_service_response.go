@@ -2,7 +2,6 @@ package cas
 
 import (
 	"encoding/xml"
-	"time"
 )
 
 type xmlServiceResponse struct {
@@ -38,8 +37,7 @@ func (p *xmlProxies) AddProxy(proxy string) {
 
 type xmlAttributes struct {
 	XMLName                                xml.Name `xml:"attributes"`
-	AuthenticationDate                     time.Time
-	AuthenticationDateStr                  string   `xml:"authenticationDate"`
+	AuthenticationDate                     *casTime `xml:"authenticationDate,omitempty"`
 	LongTermAuthenticationRequestTokenUsed bool     `xml:"longTermAuthenticationRequestTokenUsed"`
 	IsFromNewLogin                         bool     `xml:"isFromNewLogin"`
 	MemberOf                               []string `xml:"memberOf"`

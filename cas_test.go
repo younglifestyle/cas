@@ -104,7 +104,7 @@ func (ts *TestServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 					}
 
 					serviceResponse.Success.Attributes = &xmlAttributes{
-						AuthenticationDate:                     time.Now().UTC(),
+						AuthenticationDate:                     newCASTime(time.Now().UTC()),
 						LongTermAuthenticationRequestTokenUsed: false,
 						IsFromNewLogin:                         true,
 					}
@@ -126,7 +126,7 @@ func (ts *TestServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 					}
 
 					serviceResponse.Success.Attributes = &xmlAttributes{
-						AuthenticationDate:                     time.Now().UTC(),
+						AuthenticationDate:                     newCASTime(time.Now().UTC()),
 						LongTermAuthenticationRequestTokenUsed: false,
 						IsFromNewLogin:                         true,
 					}
